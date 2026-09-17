@@ -248,6 +248,22 @@ Si `make` n'est pas disponible (Windows sans outils GNU), les commandes
 équivalentes sont indiquées dans le tableau ci-dessus et utilisables
 directement.
 
+## Documentation technique
+
+Le document `docs/documentation-technique.pdf` présente les choix techniques,
+l'architecture, la modélisation, les partis pris d'implémentation et les
+limites de la solution.
+
+Il est écrit en HTML (`docs/documentation-technique.html`) et converti en PDF,
+afin que la source reste versionnable et comparable d'une version à l'autre.
+Pour le régénérer après modification :
+
+```bash
+chrome --headless --no-pdf-header-footer \
+  --print-to-pdf=docs/documentation-technique.pdf \
+  docs/documentation-technique.html
+```
+
 ## Structure du projet
 
 ```
