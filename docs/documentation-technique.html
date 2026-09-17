@@ -603,7 +603,7 @@ docs/                  Cette documentation</code></pre>
 
 <h3>4.2 Dépôt client</h3>
 
-<pre><code>cmd/web/main.go        Point d'entrée : assemblage, démarrage, arrêt propre
+<pre><code>main.go                Point d'entrée : assemblage, démarrage, arrêt propre
 internal/
   api/                 Client HTTP typé : seul à connaître les routes de l'API
   config/              Configuration lue dans l'environnement
@@ -1458,7 +1458,7 @@ go run .                    # API sur http://localhost:8080
 git clone https://github.com/KxroTM/test-technique-ynov-client.git
 cd test-technique-ynov-client
 cp .env.example .env
-go run ./cmd/web            # Application sur http://localhost:3000</code></pre>
+go run .                    # Application sur http://localhost:3000</code></pre>
 
 <p>
 Les valeurs par défaut des deux <code>.env.example</code> sont fonctionnelles
