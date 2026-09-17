@@ -29,3 +29,8 @@ var (
 	// valide sur une ressource protégée.
 	ErrUnauthorized = errors.New("authentification requise")
 )
+
+// ErrSpaceNameAlreadyUsed signale qu'un espace du même nom existe déjà chez
+// cet utilisateur. La contrainte est propre à chaque utilisateur : deux
+// personnes différentes peuvent toutes deux avoir un espace « Devoirs ».
+var ErrSpaceNameAlreadyUsed = errors.New("un espace portant ce nom existe déjà")
