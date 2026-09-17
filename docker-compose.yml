@@ -1,0 +1,30 @@
+# Infrastructure de développement.
+#
+# Seule la base de données est conteneurisée : le serveur Go se lance avec
+# `make run`, ce qui permet de le recompiler instantanément pendant le
+# développement sans reconstruire d'image Docker.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: notes_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: notes_user
+      POSTGRES_PASSWORD: notes_password
+      POSTGRES_DB: notes_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Les fichiers SQL de ce dossier sont exécutés par ordre alphabétique
+      # au premier démarrage du conteneur, ce qui crée le schéma et les
+      # données de démonstration sans outil de migration supplémentaire.
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notes_user -d notes_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
