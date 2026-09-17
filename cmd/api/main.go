@@ -1,8 +1,11 @@
 // Commande api : point d'entrée du serveur backend.
 //
-// Ce fichier ne contient aucune logique métier. Son unique rôle est
-// d'assembler les briques de l'application (configuration, base de données,
-// routeur HTTP) puis de démarrer le serveur.
+// Ce fichier ne contient aucune logique métier. Son rôle est d'assembler les
+// briques de l'application dans l'ordre (configuration, base de données,
+// repositories, services, handlers, routes) puis de démarrer le serveur.
+// L'assemblage est fait ici, explicitement, plutôt que masqué derrière un
+// conteneur d'injection de dépendances : la lecture de ce fichier suffit à
+// comprendre de quoi dépend quoi.
 package main
 
 import (
@@ -17,8 +20,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/KxroTM/test-technique-ynov/internal/auth"
 	"github.com/KxroTM/test-technique-ynov/internal/config"
 	"github.com/KxroTM/test-technique-ynov/internal/database"
+	"github.com/KxroTM/test-technique-ynov/internal/handlers"
+	"github.com/KxroTM/test-technique-ynov/internal/middleware"
+	"github.com/KxroTM/test-technique-ynov/internal/repository"
+	"github.com/KxroTM/test-technique-ynov/internal/service"
 )
 
 func main() {
@@ -36,7 +44,18 @@ func main() {
 	defer db.Close()
 	log.Println("connexion à la base de données établie")
 
-	// 3. Routeur HTTP.
+	// 3. Assemblage des couches, de la plus basse à la plus haute.
+	tokenManager := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTExpiration)
+
+	userRepository := repository.NewUserRepository(db)
+
+	authService := service.NewAuthService(userRepository, tokenManager)
+
+	authHandler := handlers.NewAuthHandler(authService)
+
+	// 4. Routeur HTTP.
+	handlers.ConfigureValidation()
+
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 
@@ -46,7 +65,22 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// 4. Démarrage du serveur.
+	api := router.Group("/api")
+
+	// Routes publiques : ce sont les seules accessibles sans jeton.
+	api.POST("/auth/register", authHandler.Register)
+	api.POST("/auth/login", authHandler.Login)
+
+	// Routes protégées. Le middleware est appliqué au groupe entier : toute
+	// route ajoutée ici est authentifiée par construction, il n'y a pas de
+	// risque d'oublier la protection sur un nouvel endpoint.
+	protected := api.Group("")
+	protected.Use(middleware.Authenticate(tokenManager))
+	{
+		protected.GET("/me", authHandler.Me)
+	}
+
+	// 5. Démarrage du serveur.
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           router,
@@ -60,7 +94,7 @@ func main() {
 		}
 	}()
 
-	// 5. Arrêt propre : on attend un signal d'interruption, puis on laisse
+	// 6. Arrêt propre : on attend un signal d'interruption, puis on laisse
 	// aux requêtes en cours le temps de se terminer avant de fermer.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
