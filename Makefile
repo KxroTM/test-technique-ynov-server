@@ -47,3 +47,7 @@ fmt: ## Formate le code source
 .PHONY: vet
 vet: ## Analyse statique du code
 	go vet ./...
+
+.PHONY: test-integration
+test-integration: ## Lance les tests d'intégration (nécessite la base démarrée)
+	TEST_DATABASE_URL="$(DATABASE_URL)" go test ./internal/repository -v

@@ -37,7 +37,8 @@ func respondError(c *gin.Context, err error) {
 	case errors.Is(err, apperrors.ErrNotFound):
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 
-	case errors.Is(err, apperrors.ErrEmailAlreadyUsed):
+	case errors.Is(err, apperrors.ErrEmailAlreadyUsed),
+		errors.Is(err, apperrors.ErrSpaceNameAlreadyUsed):
 		c.JSON(http.StatusConflict, ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, apperrors.ErrInvalidCredentials),

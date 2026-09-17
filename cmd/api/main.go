@@ -48,10 +48,13 @@ func main() {
 	tokenManager := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTExpiration)
 
 	userRepository := repository.NewUserRepository(db)
+	spaceRepository := repository.NewSpaceRepository(db)
 
 	authService := service.NewAuthService(userRepository, tokenManager)
+	spaceService := service.NewSpaceService(spaceRepository)
 
 	authHandler := handlers.NewAuthHandler(authService)
+	spaceHandler := handlers.NewSpaceHandler(spaceService)
 
 	// 4. Routeur HTTP.
 	handlers.ConfigureValidation()
@@ -78,6 +81,13 @@ func main() {
 	protected.Use(middleware.Authenticate(tokenManager))
 	{
 		protected.GET("/me", authHandler.Me)
+
+		// FT2 — gestion des espaces.
+		protected.GET("/spaces", spaceHandler.List)
+		protected.POST("/spaces", spaceHandler.Create)
+		protected.GET("/spaces/:spaceID", spaceHandler.Get)
+		protected.PUT("/spaces/:spaceID", spaceHandler.Update)
+		protected.DELETE("/spaces/:spaceID", spaceHandler.Delete)
 	}
 
 	// 5. Démarrage du serveur.
