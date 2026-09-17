@@ -49,12 +49,15 @@ func main() {
 
 	userRepository := repository.NewUserRepository(db)
 	spaceRepository := repository.NewSpaceRepository(db)
+	noteRepository := repository.NewNoteRepository(db)
 
 	authService := service.NewAuthService(userRepository, tokenManager)
 	spaceService := service.NewSpaceService(spaceRepository)
+	noteService := service.NewNoteService(noteRepository, spaceRepository)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	spaceHandler := handlers.NewSpaceHandler(spaceService)
+	noteHandler := handlers.NewNoteHandler(noteService)
 
 	// 4. Routeur HTTP.
 	handlers.ConfigureValidation()
@@ -88,6 +91,14 @@ func main() {
 		protected.GET("/spaces/:spaceID", spaceHandler.Get)
 		protected.PUT("/spaces/:spaceID", spaceHandler.Update)
 		protected.DELETE("/spaces/:spaceID", spaceHandler.Delete)
+
+		// FT3 à FT6 — gestion des notes. La création et le listing passent
+		// par l'espace : une note ne peut pas être créée hors d'un espace.
+		protected.GET("/spaces/:spaceID/notes", noteHandler.ListBySpace)
+		protected.POST("/spaces/:spaceID/notes", noteHandler.Create)
+		protected.GET("/notes/:noteID", noteHandler.Get)
+		protected.PUT("/notes/:noteID", noteHandler.Update)
+		protected.DELETE("/notes/:noteID", noteHandler.Delete)
 	}
 
 	// 5. Démarrage du serveur.

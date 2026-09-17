@@ -34,3 +34,9 @@ var (
 // cet utilisateur. La contrainte est propre à chaque utilisateur : deux
 // personnes différentes peuvent toutes deux avoir un espace « Devoirs ».
 var ErrSpaceNameAlreadyUsed = errors.New("un espace portant ce nom existe déjà")
+
+// ErrInvalidNoteStatus signale un état de note hors des valeurs autorisées.
+// La validation des tags `binding` couvre déjà ce cas pour les requêtes de
+// l'API ; cette erreur protège le service s'il est appelé depuis un autre
+// point d'entrée.
+var ErrInvalidNoteStatus = errors.New("état de note invalide : valeurs autorisées todo, in_progress, done")

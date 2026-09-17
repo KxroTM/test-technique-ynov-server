@@ -85,3 +85,37 @@ func testContext(t *testing.T) context.Context {
 	t.Cleanup(cancel)
 	return ctx
 }
+
+// createTestSpace insère un espace pour l'utilisateur fourni.
+//
+// Aucun nettoyage explicite n'est programmé : l'espace disparaît avec son
+// utilisateur, supprimé par le Cleanup de createTestUser via la cascade.
+func createTestSpace(t *testing.T, db *sql.DB, userID int64, name string) int64 {
+	t.Helper()
+
+	var spaceID int64
+	err := db.QueryRow(
+		`INSERT INTO spaces (user_id, name, description) VALUES ($1, $2, $3) RETURNING id`,
+		userID, name, "Espace créé par un test",
+	).Scan(&spaceID)
+	if err != nil {
+		t.Fatalf("création de l'espace de test : %v", err)
+	}
+
+	return spaceID
+}
+
+// countNotesWithTitle compte les notes portant un titre donné.
+//
+// Elle sert à vérifier qu'une opération refusée n'a réellement rien inséré,
+// plutôt que de se contenter du code d'erreur retourné.
+func countNotesWithTitle(t *testing.T, db *sql.DB, title string) int {
+	t.Helper()
+
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM notes WHERE title = $1`, title).Scan(&count); err != nil {
+		t.Fatalf("comptage des notes : %v", err)
+	}
+
+	return count
+}

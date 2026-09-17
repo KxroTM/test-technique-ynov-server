@@ -34,6 +34,9 @@ type ErrorResponse struct {
 // protocole HTTP, et les réponses sont cohérentes sur toute l'API.
 func respondError(c *gin.Context, err error) {
 	switch {
+	case errors.Is(err, apperrors.ErrInvalidNoteStatus):
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+
 	case errors.Is(err, apperrors.ErrNotFound):
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 

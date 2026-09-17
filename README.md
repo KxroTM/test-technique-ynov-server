@@ -117,6 +117,30 @@ Elles exigent l'en-tête `Authorization: Bearer <jeton>`.
 | `GET`    | `/spaces/:spaceID` | Détail d'un espace |
 | `PUT`    | `/spaces/:spaceID` | Modification d'un espace |
 | `DELETE` | `/spaces/:spaceID` | Suppression d'un espace et de ses notes |
+| `GET`    | `/spaces/:spaceID/notes` | Espace et ses notes (FT3) |
+| `POST`   | `/spaces/:spaceID/notes` | Ajout d'une note dans cet espace (FT4) |
+| `GET`    | `/notes/:noteID`   | Détail d'une note |
+| `PUT`    | `/notes/:noteID`   | Modification d'une note (FT5) |
+| `DELETE` | `/notes/:noteID`   | Suppression d'une note (FT6) |
+
+### Modèle de données des notes
+
+Une note comporte un titre, un contenu et un état parmi trois valeurs :
+
+| Valeur        | Libellé affiché |
+|---------------|-----------------|
+| `todo`        | Non fait |
+| `in_progress` | En cours |
+| `done`        | Terminé |
+
+L'état est facultatif à la création (`todo` par défaut) mais **obligatoire**
+à la modification : un `PUT` remplace l'intégralité de la note, et omettre
+l'état reviendrait à le réinitialiser silencieusement.
+
+La note est rattachée à l'espace indiqué dans l'URL, jamais à un espace
+transmis dans le corps de la requête. Le rattachement est ainsi porté par la
+route elle-même, et non par une donnée que le client pourrait choisir
+librement.
 
 ### Format des erreurs
 
