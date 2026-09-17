@@ -64,6 +64,13 @@ func TestParseRejectsExpiredToken(t *testing.T) {
 }
 
 // Modifier un seul caractère de la signature doit invalider le jeton.
+//
+// L'altération porte sur le PREMIER caractère de la signature et non sur le
+// dernier. Une signature HS256 fait 32 octets, soit 43 caractères base64url
+// qui en encodent 258 bits : les deux derniers bits ne servent à rien.
+// Plusieurs caractères finaux différents décodent donc vers les mêmes octets,
+// et remplacer le dernier caractère ne modifie pas toujours la signature
+// réelle. Le premier caractère, lui, porte des bits significatifs.
 func TestParseRejectsTamperedToken(t *testing.T) {
 	manager := NewTokenManager(testSecret, time.Hour)
 
@@ -72,7 +79,24 @@ func TestParseRejectsTamperedToken(t *testing.T) {
 		t.Fatalf("Generate a échoué : %v", err)
 	}
 
-	tampered := token[:len(token)-1] + "X"
+	separator := strings.LastIndex(token, ".")
+	if separator == -1 || separator == len(token)-1 {
+		t.Fatalf("jeton inattendu, signature absente : %q", token)
+	}
+
+	// On remplace le premier caractère de la signature par un autre, choisi
+	// pour être systématiquement différent de celui d'origine.
+	signatureStart := separator + 1
+	replacement := byte('A')
+	if token[signatureStart] == replacement {
+		replacement = 'B'
+	}
+
+	tampered := token[:signatureStart] + string(replacement) + token[signatureStart+1:]
+	if tampered == token {
+		t.Fatal("le jeton altéré est identique à l'original : le test ne vérifie rien")
+	}
+
 	if _, err := manager.Parse(tampered); err == nil {
 		t.Error("un jeton dont la signature a été modifiée a été accepté")
 	}

@@ -24,7 +24,7 @@ propres données.
 
 | Composant       | Choix                        | Raison |
 |-----------------|------------------------------|--------|
-| Langage         | Go 1.21                      | Imposé par le sujet |
+| Langage         | Go 1.25                      | Imposé par le sujet |
 | Routeur HTTP    | Gin                          | Routing et middlewares concis, large adoption |
 | Base de données | PostgreSQL 16                | Base relationnelle, contraintes d'intégrité natives |
 | Accès aux données | `database/sql` + pgx        | SQL écrit à la main, contrôle total sur les requêtes |
@@ -33,7 +33,7 @@ propres données.
 
 ## Prérequis
 
-- **Go 1.21** ou supérieur
+- **Go 1.25** ou supérieur
 - **Docker** et **Docker Compose** (pour la base de données)
 
 ## Installation
