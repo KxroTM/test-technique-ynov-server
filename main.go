@@ -1,4 +1,4 @@
-// Commande api : point d'entrée du serveur backend.
+// Point d'entrée du serveur backend.
 //
 // Ce fichier ne contient aucune logique métier. Son rôle est d'assembler les
 // briques de l'application dans l'ordre (configuration, base de données,

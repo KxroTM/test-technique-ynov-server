@@ -25,11 +25,11 @@ db-reset: ## Supprime et recrée la base (rejoue les migrations et les données 
 
 .PHONY: run
 run: ## Lance le serveur API
-	go run ./cmd/api
+	go run .
 
 .PHONY: build
 build: ## Compile le serveur dans bin/
-	go build -o bin/api ./cmd/api
+	go build -o bin/api .
 
 .PHONY: test
 test: ## Lance l'ensemble des tests

@@ -68,7 +68,7 @@ premier démarrage du conteneur, via les fichiers SQL du dossier
 ### 4. Lancer le serveur
 
 ```bash
-go run ./cmd/api
+go run .
 ```
 
 Le serveur écoute par défaut sur `http://localhost:8080`.
@@ -267,7 +267,7 @@ chrome --headless --no-pdf-header-footer \
 ## Structure du projet
 
 ```
-cmd/api/              Point d'entrée : assemblage des briques et démarrage
+main.go               Point d'entrée : assemblage des briques et démarrage
 internal/
   apperrors/          Erreurs métier, traduites en statuts HTTP au bord
   config/             Chargement de la configuration depuis l'environnement
