@@ -279,8 +279,8 @@ tentatives sont rejetées par la base.
 ## Documentation technique
 
 Le document `docs/documentation-technique.pdf` présente les choix techniques,
-l'architecture, la modélisation, les partis pris d'implémentation et les
-vérifications menées. Il couvre l'ensemble de la solution, serveur et client, et
+l'architecture, la modélisation, les partis pris d'implémentation, les
+vérifications menées et les compromis retenus. Il couvre l'ensemble de la solution, serveur et client, et
 il est identique dans les deux dépôts.
 
 ## Structure du projet
