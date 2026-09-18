@@ -280,17 +280,8 @@ tentatives sont rejetées par la base.
 
 Le document `docs/documentation-technique.pdf` présente les choix techniques,
 l'architecture, la modélisation, les partis pris d'implémentation et les
-vérifications menées.
-
-Il est écrit en HTML (`docs/documentation-technique.html`) et converti en PDF,
-afin que la source reste versionnable et comparable d'une version à l'autre.
-Pour le régénérer après modification :
-
-```bash
-chrome --headless --no-pdf-header-footer \
-  --print-to-pdf=docs/documentation-technique.pdf \
-  docs/documentation-technique.html
-```
+vérifications menées. Il couvre l'ensemble de la solution, serveur et client, et
+il est identique dans les deux dépôts.
 
 ## Structure du projet
 
