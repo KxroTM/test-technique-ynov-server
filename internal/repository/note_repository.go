@@ -10,14 +10,7 @@ import (
 	"github.com/KxroTM/test-technique-ynov/internal/models"
 )
 
-// NoteRepository donne accès à la table notes.
-//
-// Comme pour les espaces, toutes les méthodes exigent l'identifiant de
-// l'utilisateur. La difficulté est ici supplémentaire : une note n'a pas de
-// colonne user_id. Son propriétaire est l'utilisateur de l'espace qui la
-// contient. Chaque requête effectue donc une jointure sur spaces afin de
-// vérifier l'appartenance, plutôt que de faire confiance à un contrôle
-// réalisé en amont dans le code Go.
+// NoteRepository donne accès à la table notes
 type NoteRepository struct {
 	db *sql.DB
 }
@@ -27,11 +20,7 @@ func NewNoteRepository(db *sql.DB) *NoteRepository {
 	return &NoteRepository{db: db}
 }
 
-// ListBySpace retourne les notes d'un espace appartenant à l'utilisateur.
-//
-// La jointure sur spaces assure que la liste est vide si l'espace appartient
-// à quelqu'un d'autre : il n'y a donc aucune fuite de contenu, même si
-// l'appelant fournit un identifiant d'espace au hasard.
+// ListBySpace retourne les notes d'un espace appartenant à l'utilisateur
 func (r *NoteRepository) ListBySpace(ctx context.Context, userID, spaceID int64) ([]models.Note, error) {
 	const query = `
 		SELECT n.id, n.space_id, n.title, n.content, n.status, n.created_at, n.updated_at
@@ -72,7 +61,7 @@ func (r *NoteRepository) ListBySpace(ctx context.Context, userID, spaceID int64)
 	return notes, nil
 }
 
-// GetByID retourne une note appartenant à l'utilisateur fourni.
+// GetByID retourne une note appartenant à l'utilisateur fourni
 func (r *NoteRepository) GetByID(ctx context.Context, userID, noteID int64) (*models.Note, error) {
 	const query = `
 		SELECT n.id, n.space_id, n.title, n.content, n.status, n.created_at, n.updated_at
@@ -100,16 +89,7 @@ func (r *NoteRepository) GetByID(ctx context.Context, userID, noteID int64) (*mo
 	return note, nil
 }
 
-// Create insère une note dans un espace appartenant à l'utilisateur.
-//
-// L'insertion utilise `INSERT ... SELECT ... WHERE` plutôt qu'un VALUES
-// classique : la ligne n'est créée que si la sous-requête confirme que
-// l'espace visé appartient bien à l'utilisateur. Une tentative de création
-// dans l'espace d'autrui n'insère donc simplement aucune ligne, et la clause
-// RETURNING ne renvoie rien.
-//
-// L'alternative — lire l'espace puis insérer — aurait nécessité deux requêtes
-// et laissé une fenêtre pendant laquelle l'espace peut être supprimé.
+// Create insère une note dans un espace appartenant à l'utilisateur
 func (r *NoteRepository) Create(ctx context.Context, userID, spaceID int64, title, content string, status models.NoteStatus) (*models.Note, error) {
 	const query = `
 		INSERT INTO notes (space_id, title, content, status)
@@ -130,9 +110,6 @@ func (r *NoteRepository) Create(ctx context.Context, userID, spaceID int64, titl
 		&note.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		// Aucune ligne insérée : l'espace n'existe pas, ou il appartient à
-		// un autre utilisateur. Les deux cas sont indistinguables, comme
-		// partout ailleurs dans l'application.
 		return nil, apperrors.ErrNotFound
 	}
 	if err != nil {
@@ -142,11 +119,7 @@ func (r *NoteRepository) Create(ctx context.Context, userID, spaceID int64, titl
 	return note, nil
 }
 
-// Update modifie une note appartenant à l'utilisateur fourni.
-//
-// La note n'est pas déplaçable d'un espace à l'autre : space_id n'est pas
-// modifiable. Le sujet ne le demande pas, et cela évite d'avoir à vérifier
-// l'appartenance de l'espace de destination.
+// Update modifie une note appartenant à l'utilisateur fourni
 func (r *NoteRepository) Update(ctx context.Context, userID, noteID int64, title, content string, status models.NoteStatus) (*models.Note, error) {
 	const query = `
 		UPDATE notes
@@ -175,7 +148,7 @@ func (r *NoteRepository) Update(ctx context.Context, userID, noteID int64, title
 	return note, nil
 }
 
-// Delete supprime une note appartenant à l'utilisateur fourni.
+// Delete supprime une note appartenant à l'utilisateur fourni
 func (r *NoteRepository) Delete(ctx context.Context, userID, noteID int64) error {
 	const query = `
 		DELETE FROM notes

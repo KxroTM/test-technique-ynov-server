@@ -1,11 +1,3 @@
-// Point d'entrée du serveur backend.
-//
-// Ce fichier ne contient aucune logique métier. Son rôle est d'assembler les
-// briques de l'application dans l'ordre (configuration, base de données,
-// repositories, services, handlers, routes) puis de démarrer le serveur.
-// L'assemblage est fait ici, explicitement, plutôt que masqué derrière un
-// conteneur d'injection de dépendances : la lecture de ce fichier suffit à
-// comprendre de quoi dépend quoi.
 package main
 
 import (
@@ -30,13 +22,13 @@ import (
 )
 
 func main() {
-	// 1. Configuration : on refuse de démarrer si elle est incomplète.
+	// 1. Configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("configuration invalide : %v", err)
 	}
 
-	// 2. Base de données.
+	// 2. Base de données
 	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("connexion à la base de données : %v", err)
@@ -44,14 +36,20 @@ func main() {
 	defer db.Close()
 	log.Println("connexion à la base de données établie")
 
-	// 3. Assemblage des couches, de la plus basse à la plus haute.
+	// 3. Assemblage des couches
 	tokenManager := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTExpiration)
 
 	userRepository := repository.NewUserRepository(db)
 	spaceRepository := repository.NewSpaceRepository(db)
 	noteRepository := repository.NewNoteRepository(db)
 
-	authService := service.NewAuthService(userRepository, tokenManager)
+	var googleExchanger *auth.GoogleExchanger
+	if cfg.GoogleEnabled() {
+		googleExchanger = auth.NewGoogleExchanger(cfg.GoogleClientID, cfg.GoogleClientSecret)
+		log.Println("connexion Google activée")
+	}
+
+	authService := service.NewAuthService(userRepository, tokenManager, googleExchanger)
 	spaceService := service.NewSpaceService(spaceRepository)
 	noteService := service.NewNoteService(noteRepository, spaceRepository)
 
@@ -59,41 +57,36 @@ func main() {
 	spaceHandler := handlers.NewSpaceHandler(spaceService)
 	noteHandler := handlers.NewNoteHandler(noteService)
 
-	// 4. Routeur HTTP.
+	// 4. Routeur HTTP
 	handlers.ConfigureValidation()
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 
-	// Sonde de disponibilité, utile pour Docker et pour vérifier
-	// rapidement que le serveur répond.
+	// endpoint de disponibilité
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	api := router.Group("/api")
 
-	// Routes publiques : ce sont les seules accessibles sans jeton.
+	// Routes publiques
 	api.POST("/auth/register", authHandler.Register)
 	api.POST("/auth/login", authHandler.Login)
+	api.POST("/auth/google", authHandler.LoginWithGoogle)
 
-	// Routes protégées. Le middleware est appliqué au groupe entier : toute
-	// route ajoutée ici est authentifiée par construction, il n'y a pas de
-	// risque d'oublier la protection sur un nouvel endpoint.
+	// Routes protégées
 	protected := api.Group("")
 	protected.Use(middleware.Authenticate(tokenManager))
 	{
 		protected.GET("/me", authHandler.Me)
 
-		// FT2 — gestion des espaces.
 		protected.GET("/spaces", spaceHandler.List)
 		protected.POST("/spaces", spaceHandler.Create)
 		protected.GET("/spaces/:spaceID", spaceHandler.Get)
 		protected.PUT("/spaces/:spaceID", spaceHandler.Update)
 		protected.DELETE("/spaces/:spaceID", spaceHandler.Delete)
 
-		// FT3 à FT6 — gestion des notes. La création et le listing passent
-		// par l'espace : une note ne peut pas être créée hors d'un espace.
 		protected.GET("/spaces/:spaceID/notes", noteHandler.ListBySpace)
 		protected.POST("/spaces/:spaceID/notes", noteHandler.Create)
 		protected.GET("/notes/:noteID", noteHandler.Get)
@@ -101,7 +94,7 @@ func main() {
 		protected.DELETE("/notes/:noteID", noteHandler.Delete)
 	}
 
-	// 5. Démarrage du serveur.
+	// 5. Démarrage du serveur
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           router,
@@ -115,8 +108,7 @@ func main() {
 		}
 	}()
 
-	// 6. Arrêt propre : on attend un signal d'interruption, puis on laisse
-	// aux requêtes en cours le temps de se terminer avant de fermer.
+	// 6. Arrêt
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

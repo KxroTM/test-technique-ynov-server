@@ -1,8 +1,5 @@
-// Package handlers contient les handlers HTTP de l'API.
-//
-// Leur rôle est volontairement limité : décoder et valider la requête,
-// appeler le service concerné, puis sérialiser le résultat. Aucune règle
-// métier n'est écrite ici.
+// Package handlers contient les handlers HTTP de l'API
+
 package handlers
 
 import (
@@ -16,22 +13,14 @@ import (
 	"github.com/KxroTM/test-technique-ynov/internal/apperrors"
 )
 
-// ErrorResponse est le format unique des réponses d'erreur de l'API.
-// Utiliser la même structure partout permet au client de traiter toutes les
-// erreurs avec un seul chemin de code.
+// ErrorResponse est le format unique des réponses d'erreur de l'API
 type ErrorResponse struct {
 	Error string `json:"error"`
 
-	// Fields détaille les erreurs de validation, champ par champ.
-	// Il est absent des réponses qui ne concernent pas la validation.
 	Fields map[string]string `json:"fields,omitempty"`
 }
 
-// respondError traduit une erreur métier en réponse HTTP.
-//
-// C'est le seul endroit de l'application où une erreur devient un code de
-// statut. Les couches service et repository restent ainsi indépendantes du
-// protocole HTTP, et les réponses sont cohérentes sur toute l'API.
+// respondError traduit une erreur métier en réponse HTTP
 func respondError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, apperrors.ErrInvalidNoteStatus):
@@ -44,15 +33,16 @@ func respondError(c *gin.Context, err error) {
 		errors.Is(err, apperrors.ErrSpaceNameAlreadyUsed):
 		c.JSON(http.StatusConflict, ErrorResponse{Error: err.Error()})
 
+	case errors.Is(err, apperrors.ErrGoogleUnavailable):
+		c.JSON(http.StatusServiceUnavailable, ErrorResponse{Error: err.Error()})
+
 	case errors.Is(err, apperrors.ErrInvalidCredentials),
+		errors.Is(err, apperrors.ErrGoogleEmailUnverified),
+		errors.Is(err, apperrors.ErrGoogleExchangeFailed),
 		errors.Is(err, apperrors.ErrUnauthorized):
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: err.Error()})
 
 	default:
-		// Erreur inattendue : elle est journalisée côté serveur avec son
-		// détail, mais le client ne reçoit qu'un message générique. Renvoyer
-		// l'erreur brute pourrait exposer la structure de la base ou des
-		// informations d'infrastructure.
 		log.Printf("erreur interne : %v", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "une erreur interne est survenue",
@@ -60,10 +50,7 @@ func respondError(c *gin.Context, err error) {
 	}
 }
 
-// bindJSON décode le corps JSON de la requête dans dst et le valide.
-//
-// Elle retourne false si la requête est invalide, après avoir déjà écrit la
-// réponse d'erreur : le handler appelant n'a plus qu'à s'arrêter.
+// bindJSON décode le corps JSON de la requête dans dst et le valide
 func bindJSON(c *gin.Context, dst interface{}) bool {
 	if err := c.ShouldBindJSON(dst); err != nil {
 		var validationErrors validator.ValidationErrors
@@ -75,8 +62,6 @@ func bindJSON(c *gin.Context, dst interface{}) bool {
 			return false
 		}
 
-		// Le corps n'est pas un JSON exploitable (syntaxe invalide,
-		// type incorrect...).
 		c.JSON(http.StatusBadRequest, ErrorResponse{
 			Error: "corps de requête illisible : JSON attendu",
 		})
@@ -85,8 +70,7 @@ func bindJSON(c *gin.Context, dst interface{}) bool {
 	return true
 }
 
-// translateValidationErrors transforme les erreurs du validateur en messages
-// lisibles, indexés par nom de champ JSON.
+// translateValidationErrors transforme les erreurs du validateur en messages lisibles, indexés par nom de champ JSON
 func translateValidationErrors(errs validator.ValidationErrors) map[string]string {
 	messages := make(map[string]string, len(errs))
 
