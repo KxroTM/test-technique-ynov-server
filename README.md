@@ -1,4 +1,4 @@
-# Notes API — Serveur
+# Notes API : serveur
 
 API REST de gestion de notes organisées par espaces, développée en Go.
 
@@ -104,6 +104,7 @@ Toutes les routes sont préfixées par `/api`. Les réponses sont en JSON.
 |---------|------------------|-------------|
 | `POST`  | `/auth/register` | Création d'un compte |
 | `POST`  | `/auth/login`    | Connexion, retourne un jeton JWT |
+| `POST`  | `/auth/google`   | Connexion via un compte Google (facultatif) |
 
 ### Routes protégées
 
@@ -199,54 +200,82 @@ curl -X POST http://localhost:8080/api/spaces \
   -d '{"name":"Projets","description":"Idées personnelles"}'
 ```
 
-## Tests
+## Connexion Google
 
-Le projet contient deux natures de tests, exécutables séparément.
+En plus de l'email et du mot de passe, l'API accepte une connexion par compte
+Google. **Cette fonctionnalité est facultative** : sans identifiants OAuth
+configurés, l'endpoint répond `503` et le client masque le bouton. Toute
+l'application reste utilisable.
 
-**Tests unitaires** — sans dépendance externe, ils couvrent le hachage des mots
-de passe, la génération et la vérification des jetons JWT, et la validation des
-états de note :
+### Configuration
 
-```bash
-go test ./...
+Créer un identifiant OAuth de type « Application Web » sur
+[console.cloud.google.com](https://console.cloud.google.com), avec
+`http://localhost:3000/auth/google/callback` en URI de redirection autorisée,
+puis renseigner dans `.env` :
+
+```
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
 ```
 
-**Tests d'intégration** — ils s'exécutent contre une véritable base PostgreSQL,
-car c'est le comportement du SQL lui-même que l'on veut vérifier : filtrage par
-utilisateur dans les clauses `WHERE`, contraintes d'unicité, suppressions en
-cascade. Les simuler avec un faux repository ne prouverait rien de ce qui
-compte ici.
+### Répartition des rôles
 
-```bash
-docker compose up -d
-TEST_DATABASE_URL="postgres://notes_user:notes_password@localhost:5432/notes_db?sslmode=disable" \
-  go test ./internal/repository -v
-```
+C'est **l'API qui possède l'authentification**. Le client redirige l'utilisateur
+vers Google avec le `client_id`, qui est public, mais seul le serveur détient le
+`client_secret`, échange le code contre un jeton d'identité et émet le JWT de
+l'application. Le secret ne transite jamais par le navigateur, et il n'existe
+qu'un seul endroit qui fabrique des jetons.
 
-Sans la variable `TEST_DATABASE_URL`, ces tests sont **ignorés** et non en
-échec : `go test ./...` reste donc exécutable sans base disponible.
+L'échange est fait avec la bibliothèque standard, sans dépendance
+supplémentaire. La signature du jeton d'identité n'est pas revérifiée : il est
+reçu directement de Google sur un canal HTTPS authentifié, cas que la
+documentation Google dispense explicitement de vérification.
 
-Chaque test d'intégration crée ses propres utilisateurs jetables et les
-supprime à la fin. Les données de démonstration ne sont jamais modifiées, et
-les tests peuvent être relancés indéfiniment.
+### Règles appliquées
+
+| Situation | Comportement |
+|-----------|--------------|
+| Compte Google déjà connu | Connexion |
+| Email inconnu | Création du compte, sans mot de passe |
+| Email déjà utilisé par un compte à mot de passe | Les deux méthodes sont liées sur le même compte |
+| Email non vérifié chez Google | **Refus** |
+
+Le dernier point est une garde de sécurité : sans elle, créer un compte Google
+portant l'adresse d'un tiers suffirait à prendre le contrôle de son compte.
+
+L'identifiant conservé est le champ `sub` du jeton, stable dans le temps, et non
+l'email qui peut changer chez Google.
+
+## Vérifications
+
+Le projet ne comporte pas de tests automatisés, qui ne figurent pas parmi les
+attendus du sujet. Les contrôles suivants ont été faits manuellement, en
+interrogeant le serveur en fonctionnement :
+
+| Contrôle | Résultat attendu |
+|----------|------------------|
+| Connexion avec un mot de passe erroné ou un email inconnu | `401`, message identique dans les deux cas |
+| Jeton absent, falsifié, expiré, ou forgé en `alg=none` | `401` |
+| Lecture, modification ou suppression d'une ressource d'autrui | `404` |
+| Création d'une note dans l'espace d'autrui | `404`, et aucune ligne insérée |
+| Email ou nom d'espace déjà utilisé | `409` |
+| Identifiant d'URL non numérique ou négatif | `400` |
+| État de note hors des trois valeurs autorisées | `400` |
+| Suppression d'un espace contenant des notes | `204`, notes supprimées en cascade |
+
+Les invariants du schéma ont été éprouvés directement en SQL, en tentant de les
+violer : état de note invalide, espace en doublon, note sans espace. Les trois
+tentatives sont rejetées par la base.
 
 ## Commandes utiles
 
-Un `Makefile` regroupe les commandes courantes (`make help` pour la liste) :
-
-| Commande            | Effet |
-|---------------------|-------|
-| `make db-up`        | Démarre PostgreSQL |
-| `make db-down`      | Arrête PostgreSQL |
-| `make db-reset`     | Recrée la base à zéro |
-| `make run`          | Lance le serveur |
-| `make test`         | Lance les tests |
-| `make test-coverage`| Lance les tests avec le taux de couverture |
-| `make test-integration` | Lance les tests d'intégration (base requise) |
-
-Si `make` n'est pas disponible (Windows sans outils GNU), les commandes
-équivalentes sont indiquées dans le tableau ci-dessus et utilisables
-directement.
+| Commande | Effet |
+|----------|-------|
+| `docker compose up -d` | Démarre PostgreSQL |
+| `docker compose down` | Arrête PostgreSQL en conservant les données |
+| `docker compose down -v && docker compose up -d` | Recrée la base à zéro et rejoue les migrations |
+| `go run .` | Lance le serveur |
 
 ## Documentation technique
 
@@ -277,7 +306,7 @@ internal/
   service/            Logique métier et règles d'accès
   handlers/           Handlers HTTP, décodage et validation des requêtes
   middleware/         Authentification, traduction des erreurs
-migrations/           Schéma SQL et données de démonstration
+migrations/           Schéma SQL, données de démonstration, colonnes Google
 ```
 
 Le découpage suit une dépendance à sens unique :
@@ -294,8 +323,10 @@ règle métier, et le `repository` ne connaît pas le protocole HTTP.
 | Variable       | Obligatoire | Défaut | Description |
 |----------------|-------------|--------|-------------|
 | `PORT`         | non         | `8080` | Port d'écoute du serveur |
-| `DATABASE_URL` | **oui**     | —      | Chaîne de connexion PostgreSQL |
-| `JWT_SECRET`   | **oui**     | —      | Clé de signature des jetons JWT |
+| `DATABASE_URL` | **oui**     | aucun  | Chaîne de connexion PostgreSQL |
+| `JWT_SECRET`   | **oui**     | aucun  | Clé de signature des jetons JWT |
+| `GOOGLE_CLIENT_ID` | non | aucun | Identifiant OAuth Google, active la connexion Google |
+| `GOOGLE_CLIENT_SECRET` | non | aucun | Secret OAuth Google, jamais versionné |
 
 Les deux variables obligatoires n'ont volontairement pas de valeur par
 défaut : le serveur refuse de démarrer si elles sont absentes, plutôt que de

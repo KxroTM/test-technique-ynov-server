@@ -8,17 +8,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// TokenManager génère et vérifie les jetons JWT de l'application.
-//
-// Le secret de signature est injecté à la construction plutôt que lu depuis
-// l'environnement ici : le package reste ainsi testable sans dépendre de la
-// configuration du processus.
+// TokenManager génère et vérifie les jetons JWT de l'application
 type TokenManager struct {
 	secret     []byte
 	expiration time.Duration
 }
 
-// NewTokenManager construit un gestionnaire de jetons.
+// NewTokenManager construit un gestionnaire de jetons
 func NewTokenManager(secret string, expiration time.Duration) *TokenManager {
 	return &TokenManager{
 		secret:     []byte(secret),
@@ -26,14 +22,7 @@ func NewTokenManager(secret string, expiration time.Duration) *TokenManager {
 	}
 }
 
-// Generate produit un jeton signé identifiant l'utilisateur fourni.
-//
-// L'identifiant de l'utilisateur est placé dans le champ standard `sub`
-// (subject) plutôt que dans un champ personnalisé : c'est l'usage prévu par
-// la spécification JWT pour désigner le porteur du jeton.
-//
-// Elle retourne également la date d'expiration, que le client utilise pour
-// aligner la durée de vie de son cookie de session sur celle du jeton.
+// Generate produit un jeton signé identifiant l'utilisateur fourni
 func (m *TokenManager) Generate(userID int64) (string, time.Time, error) {
 	expiresAt := time.Now().Add(m.expiration)
 
@@ -52,13 +41,7 @@ func (m *TokenManager) Generate(userID int64) (string, time.Time, error) {
 	return signed, expiresAt, nil
 }
 
-// Parse vérifie la signature et la validité d'un jeton, puis retourne
-// l'identifiant de l'utilisateur qu'il désigne.
-//
-// L'algorithme attendu est imposé explicitement via WithValidMethods. Sans
-// cette précaution, un jeton forgé avec l'algorithme "none" ou avec un
-// algorithme asymétrique pourrait être accepté : c'est une faille classique
-// des implémentations JWT.
+// Parse vérifie la signature et la validité d'un jeton, puis retourne l'identifiant de l'utilisateur qu'il désigne
 func (m *TokenManager) Parse(tokenString string) (int64, error) {
 	token, err := jwt.ParseWithClaims(
 		tokenString,

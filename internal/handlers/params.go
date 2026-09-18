@@ -10,10 +10,7 @@ import (
 	"github.com/KxroTM/test-technique-ynov/internal/middleware"
 )
 
-// authenticatedUserID retourne l'identifiant de l'utilisateur authentifié.
-//
-// Elle retourne false après avoir déjà écrit la réponse d'erreur, sur le même
-// principe que bindJSON : le handler appelant n'a plus qu'à s'arrêter.
+// authenticatedUserID retourne l'identifiant de l'utilisateur authentifié
 func authenticatedUserID(c *gin.Context) (int64, bool) {
 	userID, ok := middleware.UserIDFrom(c)
 	if !ok {
@@ -23,12 +20,7 @@ func authenticatedUserID(c *gin.Context) (int64, bool) {
 	return userID, true
 }
 
-// pathID lit un identifiant numérique depuis un paramètre d'URL.
-//
-// Une valeur non numérique est refusée avec un statut 400 et non 404 : la
-// requête est malformée, elle ne désigne aucune ressource. Les identifiants
-// négatifs ou nuls sont également refusés, ce qui évite d'envoyer des
-// requêtes SQL qui ne peuvent rien retourner.
+// pathID lit un identifiant numérique depuis un paramètre d'URL
 func pathID(c *gin.Context, paramName string) (int64, bool) {
 	raw := c.Param(paramName)
 

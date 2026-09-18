@@ -8,7 +8,7 @@ import (
 	"github.com/KxroTM/test-technique-ynov/internal/service"
 )
 
-// SpaceHandler expose les endpoints de gestion des espaces.
+// SpaceHandler expose les endpoints de gestion des espaces
 type SpaceHandler struct {
 	spaces *service.SpaceService
 }
@@ -18,17 +18,13 @@ func NewSpaceHandler(spaceService *service.SpaceService) *SpaceHandler {
 	return &SpaceHandler{spaces: spaceService}
 }
 
-// spaceRequest décrit le corps attendu à la création et à la modification
-// d'un espace.
-//
-// La description est facultative : un espace peut n'avoir qu'un nom. Le nom,
-// lui, est obligatoire puisqu'il sert à identifier l'espace pour l'utilisateur.
+// spaceRequest décrit le corps attendu à la création et à la modification d'un espace
 type spaceRequest struct {
 	Name        string `json:"name"        binding:"required,min=1,max=100"`
 	Description string `json:"description" binding:"max=1000"`
 }
 
-// List traite GET /api/spaces.
+// List traite GET /api/spaces
 func (h *SpaceHandler) List(c *gin.Context) {
 	userID, ok := authenticatedUserID(c)
 	if !ok {
@@ -44,7 +40,7 @@ func (h *SpaceHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, spaces)
 }
 
-// Get traite GET /api/spaces/:spaceID.
+// Get traite GET /api/spaces/:spaceID
 func (h *SpaceHandler) Get(c *gin.Context) {
 	userID, ok := authenticatedUserID(c)
 	if !ok {
@@ -65,7 +61,7 @@ func (h *SpaceHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, space)
 }
 
-// Create traite POST /api/spaces.
+// Create traite POST /api/spaces
 func (h *SpaceHandler) Create(c *gin.Context) {
 	userID, ok := authenticatedUserID(c)
 	if !ok {
@@ -86,7 +82,7 @@ func (h *SpaceHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, space)
 }
 
-// Update traite PUT /api/spaces/:spaceID.
+// Update traite PUT /api/spaces/:spaceID
 func (h *SpaceHandler) Update(c *gin.Context) {
 	userID, ok := authenticatedUserID(c)
 	if !ok {
@@ -112,10 +108,7 @@ func (h *SpaceHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, space)
 }
 
-// Delete traite DELETE /api/spaces/:spaceID.
-//
-// La réponse est un 204 sans corps : il n'y a plus rien à décrire une fois la
-// ressource supprimée.
+// Delete traite DELETE /api/spaces/:spaceID
 func (h *SpaceHandler) Delete(c *gin.Context) {
 	userID, ok := authenticatedUserID(c)
 	if !ok {

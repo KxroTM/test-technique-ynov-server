@@ -12,28 +12,17 @@ import (
 	"github.com/KxroTM/test-technique-ynov/internal/models"
 )
 
-// SpaceRepository donne accès à la table spaces.
-//
-// Toutes les méthodes prennent un userID et l'intègrent à la clause WHERE de
-// leur requête. C'est le choix d'implémentation central du contrôle d'accès :
-// il est impossible d'écrire un appel qui lise ou modifie l'espace d'un autre
-// utilisateur, puisque la signature des méthodes ne le permet pas. La sécurité
-// ne repose donc pas sur la vigilance de l'appelant.
+// SpaceRepository donne accès à la table spaces
 type SpaceRepository struct {
 	db *sql.DB
 }
 
-// NewSpaceRepository construit le repository.
+// NewSpaceRepository construit le repository
 func NewSpaceRepository(db *sql.DB) *SpaceRepository {
 	return &SpaceRepository{db: db}
 }
 
-// ListByUser retourne tous les espaces d'un utilisateur, avec le nombre de
-// notes de chacun.
-//
-// Le comptage est fait par une jointure et un GROUP BY dans la même requête.
-// Compter les notes espace par espace aurait provoqué autant de requêtes
-// supplémentaires qu'il y a d'espaces (problème dit « N+1 »).
+// ListByUser retourne tous les espaces d'un utilisateur, avec le nombre de notes de chacun
 func (r *SpaceRepository) ListByUser(ctx context.Context, userID int64) ([]models.Space, error) {
 	const query = `
 		SELECT s.id, s.user_id, s.name, s.description, s.created_at, s.updated_at,
@@ -50,8 +39,6 @@ func (r *SpaceRepository) ListByUser(ctx context.Context, userID int64) ([]model
 	}
 	defer rows.Close()
 
-	// Le slice est initialisé vide plutôt que laissé à nil : il sera
-	// sérialisé en `[]` et non en `null` si l'utilisateur n'a aucun espace.
 	spaces := []models.Space{}
 
 	for rows.Next() {
@@ -71,9 +58,6 @@ func (r *SpaceRepository) ListByUser(ctx context.Context, userID int64) ([]model
 		spaces = append(spaces, space)
 	}
 
-	// rows.Err() remonte une erreur survenue pendant l'itération elle-même.
-	// Sans cette vérification, un échec en cours de parcours passerait pour
-	// une liste simplement terminée.
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("parcours des espaces : %w", err)
 	}
@@ -81,11 +65,7 @@ func (r *SpaceRepository) ListByUser(ctx context.Context, userID int64) ([]model
 	return spaces, nil
 }
 
-// GetByID retourne un espace appartenant à l'utilisateur fourni.
-//
-// Si l'espace n'existe pas, ou s'il appartient à quelqu'un d'autre, la même
-// erreur ErrNotFound est retournée. Les deux cas sont volontairement
-// indistinguables de l'extérieur.
+// GetByID retourne un espace appartenant à l'utilisateur fourni
 func (r *SpaceRepository) GetByID(ctx context.Context, userID, spaceID int64) (*models.Space, error) {
 	const query = `
 		SELECT s.id, s.user_id, s.name, s.description, s.created_at, s.updated_at,
@@ -115,7 +95,7 @@ func (r *SpaceRepository) GetByID(ctx context.Context, userID, spaceID int64) (*
 	return space, nil
 }
 
-// Create insère un nouvel espace pour l'utilisateur fourni.
+// Create insère un nouvel espace pour l'utilisateur fourni
 func (r *SpaceRepository) Create(ctx context.Context, userID int64, name, description string) (*models.Space, error) {
 	const query = `
 		INSERT INTO spaces (user_id, name, description)
@@ -142,12 +122,7 @@ func (r *SpaceRepository) Create(ctx context.Context, userID int64, name, descri
 	return space, nil
 }
 
-// Update modifie le nom et la description d'un espace appartenant à
-// l'utilisateur fourni.
-//
-// La condition user_id fait partie du UPDATE lui-même : aucune ligne n'est
-// touchée si l'espace appartient à un autre utilisateur, et sql.ErrNoRows
-// est alors renvoyé par la clause RETURNING.
+// Update modifie le nom et la description d'un espace appartenant à l'utilisateur fourni
 func (r *SpaceRepository) Update(ctx context.Context, userID, spaceID int64, name, description string) (*models.Space, error) {
 	const query = `
 		UPDATE spaces
@@ -178,10 +153,7 @@ func (r *SpaceRepository) Update(ctx context.Context, userID, spaceID int64, nam
 	return space, nil
 }
 
-// Delete supprime un espace appartenant à l'utilisateur fourni.
-//
-// Les notes de l'espace sont supprimées automatiquement par la contrainte
-// ON DELETE CASCADE définie dans le schéma.
+// Delete supprime un espace appartenant à l'utilisateur fourni
 func (r *SpaceRepository) Delete(ctx context.Context, userID, spaceID int64) error {
 	const query = `DELETE FROM spaces WHERE id = $1 AND user_id = $2`
 
@@ -190,9 +162,6 @@ func (r *SpaceRepository) Delete(ctx context.Context, userID, spaceID int64) err
 		return fmt.Errorf("suppression de l'espace : %w", err)
 	}
 
-	// DELETE ne renvoie pas d'erreur lorsqu'aucune ligne ne correspond. On
-	// inspecte donc le nombre de lignes affectées pour distinguer une vraie
-	// suppression d'une tentative sur un espace inexistant ou étranger.
 	affected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("lecture du nombre de lignes supprimées : %w", err)

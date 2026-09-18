@@ -1,4 +1,5 @@
-// Package middleware contient les intercepteurs HTTP de l'API.
+// Package middleware contient les intercepteurs HTTP de l'API
+
 package middleware
 
 import (
@@ -10,18 +11,10 @@ import (
 	"github.com/KxroTM/test-technique-ynov/internal/auth"
 )
 
-// contextKeyUserID est la clé sous laquelle l'identifiant de l'utilisateur
-// authentifié est stocké dans le contexte de la requête.
+// contextKeyUserID est la clé sous laquelle l'identifiant de l'utilisateur authentifié est stocké dans le contexte de la requête
 const contextKeyUserID = "userID"
 
-// Authenticate vérifie le jeton JWT présent dans l'en-tête Authorization.
-//
-// En cas de succès, l'identifiant de l'utilisateur est déposé dans le contexte
-// de la requête : les handlers protégés le récupèrent avec UserIDFrom et n'ont
-// donc jamais à faire confiance à un identifiant transmis par le client.
-//
-// C'est le point central du contrôle d'accès : toute route enregistrée derrière
-// ce middleware est inaccessible sans jeton valide.
+// Authenticate vérifie le jeton JWT présent dans l'en-tête Authorization
 func Authenticate(tokens *auth.TokenManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
@@ -30,7 +23,6 @@ func Authenticate(tokens *auth.TokenManager) gin.HandlerFunc {
 			return
 		}
 
-		// Le format attendu est « Bearer <jeton> ».
 		parts := strings.SplitN(header, " ", 2)
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 			abortUnauthorized(c, "format attendu : Authorization: Bearer <jeton>")
@@ -48,11 +40,7 @@ func Authenticate(tokens *auth.TokenManager) gin.HandlerFunc {
 	}
 }
 
-// UserIDFrom retourne l'identifiant de l'utilisateur authentifié.
-//
-// Le second retour est false si la requête n'est pas passée par le middleware
-// Authenticate. Un handler protégé qui obtient false est le signe d'une route
-// mal câblée : il doit refuser la requête plutôt que de continuer.
+// UserIDFrom retourne l'identifiant de l'utilisateur authentifié
 func UserIDFrom(c *gin.Context) (int64, bool) {
 	value, exists := c.Get(contextKeyUserID)
 	if !exists {
@@ -63,9 +51,7 @@ func UserIDFrom(c *gin.Context) (int64, bool) {
 	return userID, ok
 }
 
-// abortUnauthorized interrompt la chaîne de traitement avec un statut 401.
-// Abort est indispensable : sans lui, Gin appellerait quand même le handler
-// suivant après l'écriture de la réponse.
+// abortUnauthorized interrompt la chaîne de traitement avec un statut 401
 func abortUnauthorized(c *gin.Context, message string) {
 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": message})
 }
