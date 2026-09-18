@@ -24,12 +24,12 @@ propres données.
 
 | Composant       | Choix                        | Raison |
 |-----------------|------------------------------|--------|
-| Langage         | Go 1.25                      | Imposé par le sujet |
+| Langage         | Go 1.25                      | Binaire statique sans dépendance système, concurrence native |
 | Routeur HTTP    | Gin                          | Routing et middlewares concis, large adoption |
 | Base de données | PostgreSQL 16                | Base relationnelle, contraintes d'intégrité natives |
 | Accès aux données | `database/sql` + pgx        | SQL écrit à la main, contrôle total sur les requêtes |
 | Mots de passe   | bcrypt                       | Fonction de hachage lente conçue pour les mots de passe |
-| Authentification| JWT (HS256)                  | Imposé par le sujet, API sans état |
+| Authentification| JWT (HS256)                  | API sans état : aucune session à conserver côté serveur |
 
 ## Prérequis
 
@@ -118,11 +118,11 @@ Elles exigent l'en-tête `Authorization: Bearer <jeton>`.
 | `GET`    | `/spaces/:spaceID` | Détail d'un espace |
 | `PUT`    | `/spaces/:spaceID` | Modification d'un espace |
 | `DELETE` | `/spaces/:spaceID` | Suppression d'un espace et de ses notes |
-| `GET`    | `/spaces/:spaceID/notes` | Espace et ses notes (FT3) |
-| `POST`   | `/spaces/:spaceID/notes` | Ajout d'une note dans cet espace (FT4) |
+| `GET`    | `/spaces/:spaceID/notes` | Espace et ses notes |
+| `POST`   | `/spaces/:spaceID/notes` | Ajout d'une note dans cet espace |
 | `GET`    | `/notes/:noteID`   | Détail d'une note |
-| `PUT`    | `/notes/:noteID`   | Modification d'une note (FT5) |
-| `DELETE` | `/notes/:noteID`   | Suppression d'une note (FT6) |
+| `PUT`    | `/notes/:noteID`   | Modification d'une note |
+| `DELETE` | `/notes/:noteID`   | Suppression d'une note |
 
 ### Modèle de données des notes
 
@@ -249,9 +249,8 @@ l'email qui peut changer chez Google.
 
 ## Vérifications
 
-Le projet ne comporte pas de tests automatisés, qui ne figurent pas parmi les
-attendus du sujet. Les contrôles suivants ont été faits manuellement, en
-interrogeant le serveur en fonctionnement :
+Les contrôles suivants ont été menés en interrogeant le serveur en
+fonctionnement, et en tentant de violer directement les contraintes en SQL :
 
 | Contrôle | Résultat attendu |
 |----------|------------------|
