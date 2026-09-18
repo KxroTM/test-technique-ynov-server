@@ -280,7 +280,7 @@ tentatives sont rejetées par la base.
 
 Le document `docs/documentation-technique.pdf` présente les choix techniques,
 l'architecture, la modélisation, les partis pris d'implémentation et les
-limites de la solution.
+vérifications menées.
 
 Il est écrit en HTML (`docs/documentation-technique.html`) et converti en PDF,
 afin que la source reste versionnable et comparable d'une version à l'autre.
